@@ -1,0 +1,18 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DEMO_MODE=true
+    volumes:
+      - ./app:/app/app
+    restart: unless-stopped
+
+  webhook-tester:
+    image: tarampampam/webhook-tester:latest
+    ports:
+      - "8080:8080"
+    restart: unless-stopped

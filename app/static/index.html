@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deforestation Alert System</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+    <div id="app">
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <h1>🛰️ Deforestation Alerts</h1>
+                <span class="badge" id="mode-badge">DEMO</span>
+            </div>
+
+            <div class="panel" id="analysis-panel">
+                <h2>New Analysis</h2>
+                <div class="form-group">
+                    <label for="region-input">Region Name</label>
+                    <input type="text" id="region-input" placeholder="e.g. Rondonia, Brazil">
+                </div>
+                <div class="form-group">
+                    <label>Or draw a bounding box on the map</label>
+                    <div class="bbox-display" id="bbox-display">No area selected</div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="before-start">Before Start</label>
+                        <input type="date" id="before-start">
+                    </div>
+                    <div class="form-group">
+                        <label for="before-end">Before End</label>
+                        <input type="date" id="before-end">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="after-start">After Start</label>
+                        <input type="date" id="after-start">
+                    </div>
+                    <div class="form-group">
+                        <label for="after-end">After End</label>
+                        <input type="date" id="after-end">
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="analyze-btn">Analyze</button>
+                    <button class="btn btn-secondary" id="demo-btn">Load Demo</button>
+                </div>
+            </div>
+
+            <div class="panel" id="progress-panel" style="display: none;">
+                <h2>Analysis Progress</h2>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <p class="progress-text" id="progress-text">Starting...</p>
+            </div>
+
+            <div class="panel" id="results-panel" style="display: none;">
+                <h2>Results</h2>
+                <div class="stats">
+                    <div class="stat">
+                        <span class="stat-value" id="stat-patches">0</span>
+                        <span class="stat-label">Patches</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="stat-area">0</span>
+                        <span class="stat-label">Hectares</span>
+                    </div>
+                </div>
+                <div class="image-row" id="ndvi-images" style="display: none;">
+                    <div class="ndvi-img">
+                        <h3>Before</h3>
+                        <img id="ndvi-before" alt="NDVI Before">
+                    </div>
+                    <div class="ndvi-img">
+                        <h3>After</h3>
+                        <img id="ndvi-after" alt="NDVI After">
+                    </div>
+                </div>
+                <button class="btn btn-secondary" id="clear-btn">Clear Results</button>
+            </div>
+
+            <div class="panel" id="alerts-panel">
+                <h2>Alert History</h2>
+                <div id="alerts-list" class="alerts-list">
+                    <p class="muted">No alerts yet</p>
+                </div>
+            </div>
+        </aside>
+        <main id="map"></main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script src="/js/controls.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
