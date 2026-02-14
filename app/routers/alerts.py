@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 
+from app.config import settings
 from app.models import db
 from app.models.schemas import AlertResponse
 from app.services.pipeline import get_ndvi_image
+from app.services.firms import fetch_fire_hotspots
 
 router = APIRouter(tags=["alerts"])
 
@@ -57,15 +59,21 @@ async def get_alert_geojson(alert_id: str):
         }
         features.append(feature)
 
+    props = {
+        "alert_id": alert.alert_id,
+        "timestamp": alert.timestamp,
+        "total_area_hectares": alert.total_area_hectares,
+        "patch_count": alert.patch_count,
+    }
+    if alert.before_scene:
+        props["before_scene"] = alert.before_scene.model_dump()
+    if alert.after_scene:
+        props["after_scene"] = alert.after_scene.model_dump()
+
     return {
         "type": "FeatureCollection",
         "features": features,
-        "properties": {
-            "alert_id": alert.alert_id,
-            "timestamp": alert.timestamp,
-            "total_area_hectares": alert.total_area_hectares,
-            "patch_count": alert.patch_count,
-        },
+        "properties": props,
     }
 
 
@@ -83,3 +91,15 @@ async def get_after_image(alert_id: str):
     if not data:
         raise HTTPException(404, "Image not found")
     return Response(content=data, media_type="image/png")
+
+
+@router.get("/api/fires")
+async def get_fire_hotspots(west: float, south: float, east: float, north: float, days: int = 5):
+    """Get NASA FIRMS fire hotspots for a bounding box."""
+    bbox = [west, south, east, north]
+    points = fetch_fire_hotspots(bbox, days=days)
+    return {
+        "count": len(points),
+        "points": points,
+        "configured": bool(settings.nasa_firms_key),
+    }

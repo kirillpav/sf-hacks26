@@ -60,6 +60,12 @@ class PatchInfo(BaseModel):
     ndvi_drop: float
 
 
+class SceneInfo(BaseModel):
+    """Sentinel-2 scene metadata (LIVE mode only)."""
+    scene_id: str
+    acquisition_date: str
+
+
 class AlertResponse(BaseModel):
     alert_id: str
     timestamp: str
@@ -70,6 +76,8 @@ class AlertResponse(BaseModel):
     total_area_hectares: float = 0.0
     patch_count: int = 0
     error: Optional[str] = None
+    before_scene: Optional[SceneInfo] = None
+    after_scene: Optional[SceneInfo] = None
 
 
 class AnalysisAccepted(BaseModel):

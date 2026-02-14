@@ -54,6 +54,14 @@ body {
     background: #27ae60;
 }
 
+.tagline {
+    font-size: 12px;
+    color: #8899aa;
+    padding: 12px 20px;
+    line-height: 1.4;
+    border-bottom: 1px solid #0f3460;
+}
+
 /* Panels */
 .panel {
     padding: 16px 20px;
@@ -223,6 +231,163 @@ body {
     width: 100%;
     border-radius: 6px;
     border: 1px solid #0f3460;
+}
+
+/* NDVI comparison */
+.ndvi-comparison {
+    margin-bottom: 12px;
+}
+
+.ndvi-comparison h3 {
+    font-size: 11px;
+    color: #8899aa;
+    margin-bottom: 8px;
+}
+
+.ndvi-images-row {
+    display: flex;
+    gap: 12px;
+}
+
+.ndvi-img-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ndvi-img-box .ndvi-label {
+    font-size: 11px;
+    color: #8899aa;
+    font-weight: 600;
+}
+
+.ndvi-img-box img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: contain;
+    border-radius: 6px;
+    border: 1px solid #0f3460;
+    background: #1a1a2e;
+}
+
+/* NDVI scale bar - vertical gradient (brown→green) */
+.ndvi-scale-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.ndvi-scale-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.ndvi-scale-max, .ndvi-scale-min {
+    font-size: 10px;
+    color: #8899aa;
+}
+
+.ndvi-scale-gradient {
+    width: 14px;
+    height: 100px;
+    border-radius: 4px;
+    border: 1px solid #0f3460;
+    background: linear-gradient(
+        to top,
+        #996633 0%,
+        #e6cc33 25%,
+        #1a9e1a 60%,
+        #004d00 100%
+    );
+}
+
+.ndvi-scale-label {
+    font-size: 10px;
+    color: #8899aa;
+}
+
+.scene-metadata {
+    font-size: 11px;
+    color: #8899aa;
+    padding: 8px 10px;
+    background: #1a1a2e;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.results-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+}
+
+.results-actions .btn {
+    flex: none;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #8899aa;
+    cursor: pointer;
+}
+
+.checkbox-label input {
+    accent-color: #e94560;
+}
+
+.fires-control {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fires-status {
+    font-size: 11px;
+    margin-left: 22px;
+}
+
+.fires-status.fires-error {
+    color: #e94560;
+    font-style: normal;
+}
+
+/* Legend */
+.leaflet-legend {
+    padding: 8px 12px;
+    background: #16213e;
+    border-radius: 6px;
+    border: 1px solid #0f3460;
+    color: #e0e0e0;
+    font-size: 11px;
+}
+
+.legend-title {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
 }
 
 /* Alerts list */

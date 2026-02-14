@@ -15,6 +15,7 @@
                 <h1>🛰️ Deforestation Alerts</h1>
                 <span class="badge" id="mode-badge">DEMO</span>
             </div>
+            <p class="tagline">Detect deforestation from Sentinel-2 NDVI change. Draw an area or enter a region.</p>
 
             <div class="panel" id="analysis-panel">
                 <h2>New Analysis</h2>
@@ -58,6 +59,9 @@
                     <div class="progress-fill" id="progress-fill"></div>
                 </div>
                 <p class="progress-text" id="progress-text">Starting...</p>
+                <div id="retry-area" style="display: none; margin-top: 12px;">
+                    <button class="btn btn-primary" id="retry-btn">Retry Analysis</button>
+                </div>
             </div>
 
             <div class="panel" id="results-panel" style="display: none;">
@@ -72,17 +76,36 @@
                         <span class="stat-label">Hectares</span>
                     </div>
                 </div>
-                <div class="image-row" id="ndvi-images" style="display: none;">
-                    <div class="ndvi-img">
-                        <h3>Before</h3>
-                        <img id="ndvi-before" alt="NDVI Before">
-                    </div>
-                    <div class="ndvi-img">
-                        <h3>After</h3>
-                        <img id="ndvi-after" alt="NDVI After">
+                <div id="scene-metadata" class="scene-metadata" style="display: none;"></div>
+                <div class="ndvi-comparison" id="ndvi-comparison" style="display: none;">
+                    <h3>NDVI Before / After</h3>
+                    <div class="ndvi-images-row">
+                        <div class="ndvi-img-box">
+                            <span class="ndvi-label">Before</span>
+                            <img id="ndvi-before" alt="NDVI Before">
+                        </div>
+                        <div class="ndvi-img-box">
+                            <span class="ndvi-label">After</span>
+                            <img id="ndvi-after" alt="NDVI After">
+                        </div>
+                        <div class="ndvi-scale-bar">
+                            <div class="ndvi-scale-wrap">
+                                <span class="ndvi-scale-max">1</span>
+                                <div class="ndvi-scale-gradient"></div>
+                                <span class="ndvi-scale-min">0</span>
+                            </div>
+                            <span class="ndvi-scale-label">NDVI</span>
+                        </div>
                     </div>
                 </div>
-                <button class="btn btn-secondary" id="clear-btn">Clear Results</button>
+                <div class="results-actions">
+                    <div class="fires-control">
+                        <label class="checkbox-label"><input type="checkbox" id="show-fires-checkbox"> Show fire hotspots</label>
+                        <span id="fires-status" class="fires-status muted"></span>
+                    </div>
+                    <button class="btn btn-secondary" id="download-geojson-btn">Download GeoJSON</button>
+                    <button class="btn btn-secondary" id="clear-btn">Clear Results</button>
+                </div>
             </div>
 
             <div class="panel" id="alerts-panel">

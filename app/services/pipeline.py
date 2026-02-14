@@ -15,7 +15,7 @@ import matplotlib.colors as mcolors
 
 from app.config import settings
 from app.models import db
-from app.models.schemas import AnalysisRequest, AnalysisStatus, PatchInfo
+from app.models.schemas import AnalysisRequest, AnalysisStatus, PatchInfo, SceneInfo
 from app.services import ndvi as ndvi_svc
 from app.services import patch_detector
 from app.services import webhook
@@ -44,11 +44,11 @@ def _render_ndvi_png(ndvi_array: np.ndarray, title: str = "") -> bytes:
     im = ax.imshow(ndvi_array, cmap=cmap, vmin=0, vmax=1)
     ax.set_title(title, fontsize=12)
     ax.axis("off")
-    fig.colorbar(im, ax=ax, shrink=0.8, label="NDVI")
-    fig.tight_layout()
+    cbar = fig.colorbar(im, ax=ax, shrink=0.8, label="NDVI", pad=0.02)
+    fig.tight_layout(pad=1.0)
 
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
+    fig.savefig(buf, format="png", dpi=100, bbox_inches="tight", pad_inches=0.3)
     plt.close(fig)
     buf.seek(0)
     return buf.read()
@@ -212,21 +212,60 @@ async def _fetch_real_data(alert_id: str, bbox: list[float], request: AnalysisRe
     db.update_alert(alert_id, progress=35)
 
     # Fetch band pairs (use least cloudy scene)
-    before_red, before_nir, meta = fetch_band_pair(before_scenes[0], bbox)
+    before_scene = before_scenes[0]
+    after_scene = after_scenes[0]
+    before_red, before_nir, meta_before = fetch_band_pair(before_scene, bbox)
     db.update_alert(alert_id, progress=45)
 
-    after_red, after_nir, _ = fetch_band_pair(after_scenes[0], bbox)
+    after_red, after_nir, meta_after = fetch_band_pair(after_scene, bbox)
     db.update_alert(alert_id, progress=55)
 
-    # Ensure same shape
-    min_h = min(before_red.shape[0], after_red.shape[0])
-    min_w = min(before_red.shape[1], after_red.shape[1])
-
-    before_ndvi = ndvi_svc.compute_ndvi(
-        before_red[:min_h, :min_w], before_nir[:min_h, :min_w]
+    # Store scene metadata for UI
+    db.update_alert(
+        alert_id,
+        before_scene=SceneInfo(
+            scene_id=before_scene["id"],
+            acquisition_date=before_scene.get("datetime", "")[:10] or "—",
+        ),
+        after_scene=SceneInfo(
+            scene_id=after_scene["id"],
+            acquisition_date=after_scene.get("datetime", "")[:10] or "—",
+        ),
     )
-    after_ndvi = ndvi_svc.compute_ndvi(
-        after_red[:min_h, :min_w], after_nir[:min_h, :min_w]
+
+    # Reproject both to a common grid so patches align correctly with the map.
+    # Different Sentinel-2 scenes have different pixel grids; reprojection ensures alignment.
+    from rasterio.warp import reproject, Resampling
+    from rasterio.transform import from_bounds
+
+    before_ndvi_raw = ndvi_svc.compute_ndvi(before_red, before_nir)
+    after_ndvi_raw = ndvi_svc.compute_ndvi(after_red, after_nir)
+
+    west, south, east, north = bbox
+    target_shape = (256, 256)
+    target_transform = from_bounds(
+        west, south, east, north, target_shape[1], target_shape[0]
     )
 
-    return before_ndvi, after_ndvi, meta["transform"], meta["crs"]
+    before_ndvi = np.full(target_shape, np.nan, dtype=np.float32)
+    after_ndvi = np.full(target_shape, np.nan, dtype=np.float32)
+    reproject(
+        source=before_ndvi_raw,
+        destination=before_ndvi,
+        src_transform=meta_before["transform"],
+        src_crs="EPSG:4326",
+        dst_transform=target_transform,
+        dst_crs="EPSG:4326",
+        resampling=Resampling.bilinear,
+    )
+    reproject(
+        source=after_ndvi_raw,
+        destination=after_ndvi,
+        src_transform=meta_after["transform"],
+        src_crs="EPSG:4326",
+        dst_transform=target_transform,
+        dst_crs="EPSG:4326",
+        resampling=Resampling.bilinear,
+    )
+
+    return before_ndvi, after_ndvi, target_transform, meta_before["crs"]

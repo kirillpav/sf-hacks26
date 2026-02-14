@@ -1,4 +1,9 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+
+# Resolve .env relative to project root so it's found regardless of CWD
+_ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 
 
 class Settings(BaseSettings):
@@ -27,7 +32,7 @@ class Settings(BaseSettings):
     # Max cloud cover percentage for scene search
     max_cloud_cover: int = 20
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": str(_ENV_PATH), "env_file_encoding": "utf-8"}
 
 
 settings = Settings()
