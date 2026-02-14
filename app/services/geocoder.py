@@ -5,7 +5,7 @@ from __future__ import annotations
 from geopy.geocoders import Nominatim
 
 
-_geocoder = Nominatim(user_agent="deforestation-alert-mvp")
+_geocoder = Nominatim(user_agent="deforestation-alert-mvp", timeout=10)
 
 
 def region_to_bbox(region_name: str) -> list[float] | None:

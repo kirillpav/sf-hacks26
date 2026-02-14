@@ -61,18 +61,41 @@ def fetch_band(
 ) -> tuple[np.ndarray, dict]:
     """Read a single band from a COG asset, windowed to bbox.
 
+    The bbox is expected in EPSG:4326 (lon/lat).  Sentinel-2 COGs are stored
+    in UTM, so we reproject the bbox to the dataset's native CRS before
+    computing the read window.
+
     Returns (band_array, metadata_dict) where metadata includes transform and crs.
     """
+    from pyproj import Transformer
+    from rasterio.windows import from_bounds
+    from rasterio.transform import from_bounds as tfm_from_bounds
+
     href = asset.href if hasattr(asset, "href") else str(asset)
     overview_level = overview_level or settings.cog_overview_level
 
     with rasterio.open(href) as src:
-        # Compute window from bbox
-        from rasterio.windows import from_bounds
-        window = from_bounds(*bbox, transform=src.transform)
+        # Reproject bbox from EPSG:4326 to the dataset CRS (usually UTM)
+        dst_crs = str(src.crs)
+        if dst_crs.upper() != "EPSG:4326":
+            transformer = Transformer.from_crs(
+                "EPSG:4326", dst_crs, always_xy=True
+            )
+            xs, ys = transformer.transform(
+                [bbox[0], bbox[2]], [bbox[1], bbox[3]]
+            )
+            native_bbox = [min(xs), min(ys), max(xs), max(ys)]
+        else:
+            native_bbox = bbox
+
+        window = from_bounds(*native_bbox, transform=src.transform)
+
+        # Clamp window to the raster extent
+        window = window.intersection(
+            rasterio.windows.Window(0, 0, src.width, src.height)
+        )
 
         # Read at overview level for speed
-        # overviews are stored at power-of-2 reductions
         if src.overviews(1) and overview_level > 0:
             ovr_factors = src.overviews(1)
             if overview_level <= len(ovr_factors):
@@ -94,14 +117,13 @@ def fetch_band(
             resampling=rasterio.enums.Resampling.nearest,
         )
 
-        from rasterio.transform import from_bounds as tfm_from_bounds
         out_transform = tfm_from_bounds(
             *bbox, out_shape[1], out_shape[0]
         )
 
         meta = {
             "transform": out_transform,
-            "crs": str(src.crs),
+            "crs": dst_crs,
             "shape": out_shape,
         }
 
