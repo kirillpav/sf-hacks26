@@ -54,12 +54,24 @@ const App = (() => {
             }),
             onEachFeature: (feature, layer) => {
                 const p = feature.properties;
+                const imp = p.impact;
+                let impactHtml = '';
+                if (imp) {
+                    impactHtml = `
+                        <hr style="border-color:#0f3460;margin:6px 0">
+                        <div class="popup-row"><span class="popup-label">Carbon loss:</span> ${imp.carbon_loss_tonnes} tCO2</div>
+                        <div class="popup-row"><span class="popup-label">Trees needed:</span> ${imp.trees_to_replant.toLocaleString()}</div>
+                        <div class="popup-row"><span class="popup-label">Recovery:</span> ${imp.regrowth_months} months</div>
+                        <div class="popup-row"><span class="popup-label">Biome:</span> ${imp.biome}</div>
+                    `;
+                }
                 layer.bindPopup(`
                     <div class="popup-title severity-${p.severity}">${p.severity} Severity</div>
                     <div class="popup-row"><span class="popup-label">Area:</span> ${p.area_hectares} ha</div>
                     <div class="popup-row"><span class="popup-label">NDVI Drop:</span> ${p.ndvi_drop}</div>
                     <div class="popup-row"><span class="popup-label">Confidence:</span> ${(p.confidence * 100).toFixed(0)}%</div>
                     <div class="popup-row"><span class="popup-label">Location:</span> ${p.centroid[0].toFixed(4)}, ${p.centroid[1].toFixed(4)}</div>
+                    ${impactHtml}
                 `);
             },
         }).addTo(map);
@@ -93,6 +105,7 @@ const App = (() => {
         document.getElementById('retry-btn').addEventListener('click', retryAnalysis);
         document.getElementById('download-geojson-btn').addEventListener('click', downloadGeoJSON);
         document.getElementById('show-fires-checkbox').addEventListener('change', toggleFires);
+        document.getElementById('intervention-btn').addEventListener('click', applyIntervention);
 
         // Check mode
         fetch('/api/health')
@@ -327,6 +340,37 @@ const App = (() => {
         document.getElementById('stat-patches').textContent = geojson.properties.patch_count;
         document.getElementById('stat-area').textContent = geojson.properties.total_area_hectares;
 
+        // Impact stats
+        const impactEl = document.getElementById('impact-stats');
+        const agg = geojson.properties.aggregate_impact;
+        if (agg) {
+            document.getElementById('stat-carbon').textContent = formatNumber(agg.total_carbon_loss_tonnes);
+            document.getElementById('stat-trees').textContent = formatNumber(agg.total_trees_to_replant);
+            document.getElementById('stat-regrowth').textContent = agg.avg_regrowth_months;
+            impactEl.style.display = 'block';
+        } else {
+            impactEl.style.display = 'none';
+        }
+
+        // Narrative
+        const narrativeEl = document.getElementById('narrative-box');
+        if (geojson.properties.narrative) {
+            narrativeEl.textContent = geojson.properties.narrative;
+            narrativeEl.style.display = 'block';
+        } else {
+            narrativeEl.style.display = 'none';
+        }
+
+        // Intervention panel
+        const intervPanel = document.getElementById('intervention-panel');
+        if (geojson.properties.patch_count > 0) {
+            intervPanel.style.display = 'block';
+            document.getElementById('intervention-select').value = 'natural_regeneration';
+            document.getElementById('intervention-delta').style.display = 'none';
+        } else {
+            intervPanel.style.display = 'none';
+        }
+
         // Scene metadata (LIVE mode)
         const sceneEl = document.getElementById('scene-metadata');
         if (geojson.properties.before_scene || geojson.properties.after_scene) {
@@ -380,12 +424,74 @@ const App = (() => {
         return [minLon, minLat, maxLon, maxLat];
     }
 
+    function formatNumber(n) {
+        if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+        if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+        return String(Math.round(n));
+    }
+
+    async function applyIntervention() {
+        if (!currentAlertId) return;
+        const intervention = document.getElementById('intervention-select').value;
+        const btn = document.getElementById('intervention-btn');
+        btn.disabled = true;
+        btn.textContent = '...';
+
+        try {
+            const resp = await fetch(`/api/alerts/${currentAlertId}/intervention`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ intervention }),
+            });
+            if (!resp.ok) {
+                const err = await resp.json();
+                alert(`Error: ${err.detail || 'Failed'}`);
+                return;
+            }
+            const data = await resp.json();
+
+            // Update impact stats
+            const agg = data.aggregate_impact;
+            document.getElementById('stat-carbon').textContent = formatNumber(agg.total_carbon_loss_tonnes);
+            document.getElementById('stat-trees').textContent = formatNumber(agg.total_trees_to_replant);
+            document.getElementById('stat-regrowth').textContent = agg.avg_regrowth_months;
+
+            // Update narrative
+            const narrativeEl = document.getElementById('narrative-box');
+            narrativeEl.textContent = data.narrative;
+            narrativeEl.style.display = 'block';
+
+            // Show delta
+            const deltaEl = document.getElementById('intervention-delta');
+            if (data.delta_vs_natural) {
+                const d = data.delta_vs_natural;
+                deltaEl.innerHTML = `
+                    <span class="delta-positive">${d.regrowth_improvement_pct}% faster recovery</span>
+                    (${d.regrowth_months_saved} months saved)<br>
+                    <span class="delta-cost">Estimated cost: $${agg.total_cost_estimate_usd.toLocaleString()}</span>
+                `;
+                deltaEl.style.display = 'block';
+            } else {
+                deltaEl.style.display = 'none';
+            }
+        } catch (e) {
+            console.error('Intervention error:', e);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Apply';
+        }
+    }
+
     function clearResults() {
         patchesLayer.clearLayers();
         firesLayer.clearLayers();
         document.getElementById('results-panel').style.display = 'none';
         document.getElementById('ndvi-comparison').style.display = 'none';
         document.getElementById('scene-metadata').style.display = 'none';
+        document.getElementById('impact-stats').style.display = 'none';
+        document.getElementById('narrative-box').style.display = 'none';
+        document.getElementById('intervention-panel').style.display = 'none';
+        document.getElementById('intervention-delta').style.display = 'none';
         document.getElementById('show-fires-checkbox').checked = false;
         setFireStatus('');
         currentGeojson = null;

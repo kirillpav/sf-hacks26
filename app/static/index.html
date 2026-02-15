@@ -98,6 +98,35 @@
                         </div>
                     </div>
                 </div>
+                <div class="impact-stats" id="impact-stats" style="display: none;">
+                    <div class="stats">
+                        <div class="stat">
+                            <span class="stat-value stat-carbon" id="stat-carbon">0</span>
+                            <span class="stat-label">tCO2 Lost</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-value stat-trees" id="stat-trees">0</span>
+                            <span class="stat-label">Trees Needed</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-value stat-regrowth" id="stat-regrowth">0</span>
+                            <span class="stat-label">Months Recovery</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="narrative-box" class="narrative-box" style="display: none;"></div>
+                <div class="intervention-panel" id="intervention-panel" style="display: none;">
+                    <h3>What-if Intervention</h3>
+                    <div class="intervention-row">
+                        <select id="intervention-select" class="intervention-select">
+                            <option value="natural_regeneration">Natural Regeneration</option>
+                            <option value="assisted_planting">Assisted Planting</option>
+                            <option value="intensive_restoration">Intensive Restoration</option>
+                        </select>
+                        <button class="btn btn-primary btn-sm" id="intervention-btn">Apply</button>
+                    </div>
+                    <div id="intervention-delta" class="intervention-delta" style="display: none;"></div>
+                </div>
                 <div class="results-actions">
                     <div class="fires-control">
                         <label class="checkbox-label"><input type="checkbox" id="show-fires-checkbox"> Show fire hotspots</label>

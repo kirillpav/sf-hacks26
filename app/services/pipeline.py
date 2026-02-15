@@ -15,10 +15,15 @@ import matplotlib.colors as mcolors
 
 from app.config import settings
 from app.models import db
-from app.models.schemas import AnalysisRequest, AnalysisStatus, PatchInfo, SceneInfo
+from app.models.schemas import (
+    AnalysisRequest, AnalysisStatus, PatchInfo, PatchImpact,
+    AggregateImpact, SceneInfo,
+)
 from app.services import ndvi as ndvi_svc
 from app.services import patch_detector
 from app.services import webhook
+from app.services import carbon as carbon_svc
+from app.services.storytelling import generate_narrative
 from app.services.geocoder import region_to_bbox
 
 logger = logging.getLogger(__name__)
@@ -124,10 +129,51 @@ async def run_analysis(alert_id: str, request: AnalysisRequest) -> None:
         after_png = _render_ndvi_png(after_ndvi, "NDVI After")
         _ndvi_images[alert_id] = {"before": before_png, "after": after_png}
 
-        db.update_alert(alert_id, progress=90)
+        db.update_alert(alert_id, progress=88)
 
         # Calculate totals
         total_area = round(sum(p.area_hectares for p in patches), 2)
+
+        # Enrich patches with carbon/restoration impact
+        patches_impact_data = []
+        for p in patches:
+            impact_dict = carbon_svc.estimate_patch_impact(
+                p.area_hectares, p.severity, p.ndvi_drop, p.centroid[0],
+            )
+            p.impact = PatchImpact(**impact_dict)
+            patches_impact_data.append(impact_dict)
+
+        # Aggregate impact
+        agg_dict = carbon_svc.aggregate_impact(patches_impact_data)
+        agg = AggregateImpact(**agg_dict)
+
+        db.update_alert(alert_id, progress=93)
+
+        # Best-case regrowth (intensive restoration) for narrative
+        best_case_impacts = []
+        for p in patches:
+            best = carbon_svc.estimate_patch_impact(
+                p.area_hectares, p.severity, p.ndvi_drop, p.centroid[0],
+                intervention="intensive_restoration",
+            )
+            best_case_impacts.append(best)
+        best_case_agg = carbon_svc.aggregate_impact(best_case_impacts)
+
+        # Generate narrative
+        worst_sev = "HIGH" if any(p.severity == "HIGH" for p in patches) else (
+            "MEDIUM" if any(p.severity == "MEDIUM" for p in patches) else "LOW"
+        )
+        narrative = generate_narrative(
+            patch_count=len(patches),
+            total_area_hectares=total_area,
+            total_carbon_loss=agg.total_carbon_loss_tonnes,
+            total_trees=agg.total_trees_to_replant,
+            avg_regrowth_months=agg.avg_regrowth_months,
+            intervention_label="Natural Regeneration",
+            worst_severity=worst_sev,
+            region_bbox=bbox,
+            best_case_regrowth=best_case_agg["avg_regrowth_months"],
+        ) if patches else None
 
         db.update_alert(
             alert_id,
@@ -136,6 +182,8 @@ async def run_analysis(alert_id: str, request: AnalysisRequest) -> None:
             patches=patches,
             total_area_hectares=total_area,
             patch_count=len(patches),
+            aggregate_impact=agg,
+            narrative=narrative,
         )
 
         # Fire webhook
@@ -148,12 +196,14 @@ async def run_analysis(alert_id: str, request: AnalysisRequest) -> None:
                 "patches": [p.model_dump() for p in patches],
                 "total_area_hectares": total_area,
                 "patch_count": len(patches),
+                "aggregate_impact": agg.model_dump(),
+                "narrative": narrative,
             }
             await webhook.fire_webhook(payload, webhook_url)
 
         logger.info(
-            "Analysis %s completed: %d patches, %.1f ha total",
-            alert_id, len(patches), total_area,
+            "Analysis %s completed: %d patches, %.1f ha, %.0f tCO2 lost",
+            alert_id, len(patches), total_area, agg.total_carbon_loss_tonnes,
         )
 
     except Exception as e:

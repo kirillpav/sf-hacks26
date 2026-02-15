@@ -390,6 +390,86 @@ body {
     border-radius: 2px;
 }
 
+/* Impact stats */
+.impact-stats {
+    margin-bottom: 12px;
+}
+
+.stat-carbon { color: #e67e22; }
+.stat-trees { color: #27ae60; }
+.stat-regrowth { color: #3498db; }
+
+/* Narrative */
+.narrative-box {
+    font-size: 12px;
+    line-height: 1.6;
+    padding: 10px 12px;
+    background: #1a1a2e;
+    border-left: 3px solid #3498db;
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 12px;
+    color: #ccd6e0;
+}
+
+/* Intervention panel */
+.intervention-panel {
+    margin-bottom: 12px;
+}
+
+.intervention-panel h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #8899aa;
+    margin-bottom: 8px;
+}
+
+.intervention-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.intervention-select {
+    flex: 1;
+    padding: 7px 10px;
+    border: 1px solid #0f3460;
+    border-radius: 6px;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.intervention-select:focus {
+    outline: none;
+    border-color: #e94560;
+}
+
+.btn-sm {
+    padding: 7px 14px;
+    font-size: 12px;
+    flex: none;
+}
+
+.intervention-delta {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: #1a1a2e;
+    border-radius: 6px;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.delta-positive {
+    color: #27ae60;
+    font-weight: 600;
+}
+
+.delta-cost {
+    color: #f39c12;
+}
+
 /* Alerts list */
 .alerts-list {
     max-height: 200px;

@@ -48,6 +48,17 @@ class AnalysisStatus(str, Enum):
     FAILED = "FAILED"
 
 
+class PatchImpact(BaseModel):
+    """Per-patch carbon/restoration estimates."""
+    biome: str = ""
+    carbon_loss_tonnes: float = 0.0
+    trees_to_replant: int = 0
+    regrowth_months: int = 0
+    intervention: str = "natural_regeneration"
+    intervention_label: str = "Natural Regeneration"
+    cost_estimate_usd: int = 0
+
+
 class PatchInfo(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8])
     coordinates: list[list[list[float]]] = Field(
@@ -58,12 +69,21 @@ class PatchInfo(BaseModel):
     confidence: float = Field(ge=0, le=1)
     severity: Severity
     ndvi_drop: float
+    impact: Optional[PatchImpact] = None
 
 
 class SceneInfo(BaseModel):
     """Sentinel-2 scene metadata (LIVE mode only)."""
     scene_id: str
     acquisition_date: str
+
+
+class AggregateImpact(BaseModel):
+    """Alert-level rollup of carbon/restoration estimates."""
+    total_carbon_loss_tonnes: float = 0.0
+    total_trees_to_replant: int = 0
+    avg_regrowth_months: int = 0
+    total_cost_estimate_usd: int = 0
 
 
 class AlertResponse(BaseModel):
@@ -78,6 +98,8 @@ class AlertResponse(BaseModel):
     error: Optional[str] = None
     before_scene: Optional[SceneInfo] = None
     after_scene: Optional[SceneInfo] = None
+    aggregate_impact: Optional[AggregateImpact] = None
+    narrative: Optional[str] = None
 
 
 class AnalysisAccepted(BaseModel):
@@ -100,6 +122,24 @@ class RegionResponse(BaseModel):
     created_at: str
 
 
+class InterventionRequest(BaseModel):
+    intervention: str = Field(
+        description="One of: natural_regeneration, assisted_planting, intensive_restoration"
+    )
+
+
+class InterventionResponse(BaseModel):
+    alert_id: str
+    intervention: str
+    intervention_label: str
+    patches: list[PatchInfo]
+    aggregate_impact: AggregateImpact
+    narrative: str
+    delta_vs_natural: Optional[dict] = Field(
+        None, description="Improvement vs natural_regeneration baseline"
+    )
+
+
 class WebhookPayload(BaseModel):
     alert_id: str
     timestamp: str
@@ -107,3 +147,5 @@ class WebhookPayload(BaseModel):
     patches: list[dict]
     total_area_hectares: float
     patch_count: int
+    aggregate_impact: Optional[dict] = None
+    narrative: Optional[str] = None
